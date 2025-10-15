@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>玩家 B - 回應</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Microsoft JhengHei", Arial, sans-serif;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .player-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        width: 600px;
+        max-width: 100%;
+      }
+
+      .player-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 3px solid #f5576c;
+      }
+
+      .player-header h1 {
+        color: #f5576c;
+        font-size: 36px;
+        margin-bottom: 10px;
+      }
+
+      .status {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 15px;
+        font-weight: bold;
+      }
+
+      .status.connected {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .status.disconnected {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .pending-action {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        border: 3px solid #ffc107;
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 25px;
+        animation: slideDown 0.5s ease;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .pending-action h3 {
+        color: #856404;
+        margin-bottom: 15px;
+        font-size: 22px;
+        text-align: center;
+      }
+
+      .card-details {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border: 2px solid #ffc107;
+      }
+
+      .card-details h4 {
+        color: #856404;
+        margin-bottom: 10px;
+        font-size: 18px;
+      }
+
+      .card-details .card-info {
+        margin-bottom: 5px;
+        font-size: 14px;
+        color: #333;
+      }
+
+      .card-details .card-effects {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 6px;
+        margin-top: 10px;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 15px;
+      }
+
+      .btn {
+        flex: 1;
+        padding: 15px;
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn-accept {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+      }
+
+      .btn-accept:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(40, 167, 69, 0.5);
+      }
+
+      .btn-reject {
+        background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        color: white;
+      }
+
+      .btn-reject:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(220, 53, 69, 0.5);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .waiting-message {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+        font-size: 18px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        margin-bottom: 25px;
+      }
+
+      .waiting-message .emoji {
+        font-size: 48px;
+        margin-bottom: 15px;
+        animation: bounce 2s infinite;
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      .dice-result {
+        background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+        display: none;
+      }
+
+      .dice-result.show {
+        display: block;
+        animation: slideDown 0.5s ease;
+      }
+
+      .dice-result .dice-number {
+        font-size: 48px;
+        font-weight: bold;
+        margin: 10px 0;
+      }
+
+      .dice-result .effect-text {
+        font-size: 18px;
+        margin-top: 10px;
+      }
+
+      .dice-result .ip-change {
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 10px;
+      }
+
+      .log-container {
+        margin-top: 25px;
+        max-height: 300px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+      }
+
+      .log-title {
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 18px;
+      }
+
+      .log-item {
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.5;
+        animation: slideIn 0.3s ease;
+        border-left: 4px solid;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .log-item.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border-left-color: #17a2b8;
+      }
+
+      .log-item.success {
+        background: #d4edda;
+        color: #155724;
+        border-left-color: #28a745;
+      }
+
+      .log-item.warning {
+        background: #fff3cd;
+        color: #856404;
+        border-left-color: #ffc107;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="player-card">
+      <div class="player-header">
+        <h1>🎯 玩家 B</h1>
+        <span class="status disconnected" id="status">未連線</span>
+      </div>
+
+      <div id="pendingAction" style="display: none">
+        <div class="pending-action">
+          <h3>⚔️ 玩家A出牌了！</h3>
+          <div class="card-details" id="cardDetails">
+            <!-- 卡片資訊將動態填入 -->
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-accept" id="acceptBtn">
+              <span>✓</span>
+              <span>同意</span>
+            </button>
+            <button class="btn btn-reject" id="rejectBtn">
+              <span>✗</span>
+              <span>拒絕</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="waitingMessage" class="waiting-message">
+        <div class="emoji">⏳</div>
+        <div>等待對手出牌...</div>
+      </div>
+
+      <div class="dice-result" id="diceResult">
+        <div>🎲 骰子結果</div>
+        <div class="dice-number" id="diceNumber">-</div>
+        <div class="effect-text" id="effectText">-</div>
+        <div class="ip-change" id="ipChange">-</div>
+      </div>
+
+      <div class="log-container">
+        <div class="log-title">📜 遊戲記錄</div>
+        <div id="log"></div>
+      </div>
+    </div>
+
+    <script>
+      const ROOM_ID = "room001";
+      const WS_URL = `ws://localhost:8000/ws/game/${ROOM_ID}/?player=PlayerB`;
+
+      let socket;
+      let currentCardNumber = null;
+      let currentCardName = null;
+
+      const statusEl = document.getElementById("status");
+      const pendingActionEl = document.getElementById("pendingAction");
+      const waitingMessageEl = document.getElementById("waitingMessage");
+      const cardDetailsEl = document.getElementById("cardDetails");
+      const acceptBtn = document.getElementById("acceptBtn");
+      const rejectBtn = document.getElementById("rejectBtn");
+      const diceResultEl = document.getElementById("diceResult");
+      const diceNumberEl = document.getElementById("diceNumber");
+      const effectTextEl = document.getElementById("effectText");
+      const ipChangeEl = document.getElementById("ipChange");
+      const logEl = document.getElementById("log");
+
+      function initWebSocket() {
+        socket = new WebSocket(WS_URL);
+
+        socket.onopen = () => {
+          statusEl.textContent = "✓ 已連線";
+          statusEl.className = "status connected";
+          addLog("成功連接到遊戲房間！", "success");
+        };
+
+        socket.onclose = () => {
+          statusEl.textContent = "✗ 已斷線";
+          statusEl.className = "status disconnected";
+          addLog("連線中斷，請重新整理頁面", "error");
+        };
+
+        socket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          console.log("收到訊息:", data);
+          handleMessage(data);
+        };
+
+        socket.onerror = (error) => {
+          console.error("WebSocket 錯誤:", error);
+          addLog("連線發生錯誤", "error");
+        };
+      }
+
+      function handleMessage(data) {
+        if (data.event === "player_joined") {
+          addLog(`${data.player} 加入了遊戲`, "info");
+        } else if (data.event === "card_played") {
+          if (data.player !== "PlayerB") {
+            showPendingAction(data);
+            addLog(`⚠️ ${data.player} 出牌：${data.card_name}`, "warning");
+          }
+        } else if (data.event === "action_resolved") {
+          hidePendingAction();
+          const result = data.response === "accept" ? "同意" : "拒絕";
+          const resultClass =
+            data.response === "accept" ? "success" : "warning";
+          const emoji = data.response === "accept" ? "✓" : "✗";
+          addLog(`${emoji} 你${result}了「${data.card_name}」`, resultClass);
+        } else if (data.event === "dice_rolled") {
+          showDiceResult(data);
+          addLog(`🎲 擲骰結果：${data.dice_result}`, "info");
+          if (data.effect) {
+            addLog(
+              `${data.effect.result}`,
+              data.effect.ip_change >= 0 ? "success" : "warning"
+            );
+          }
+        }
+      }
+
+      function showPendingAction(data) {
+        currentCardNumber = data.card_number;
+        currentCardName = data.card_name;
+        const cardData = data.card_data;
+
+        let effectsHtml = "";
+        if (cardData.dice_effects) {
+          effectsHtml = "<strong>骰子效果：</strong><br>";
+          for (let range in cardData.dice_effects) {
+            const effect = cardData.dice_effects[range];
+            const ipText =
+              effect.ip_change > 0
+                ? `+${effect.ip_change} IP`
+                : effect.ip_change < 0
+                ? `${effect.ip_change} IP`
+                : "";
+            effectsHtml += `• ${range} = ${effect.result} ${
+              ipText ? "<strong>" + ipText + "</strong>" : ""
+            }<br>`;
+          }
+        }
+
+        cardDetailsEl.innerHTML = `
+                <h4>🃏 ${cardData.name}</h4>
+                <div class="card-info">卡號：<strong>${
+                  cardData.card_number
+                }</strong></div>
+                <div class="card-info">類型：<strong>${
+                  cardData.card_type === "ACTION"
+                    ? "行動卡"
+                    : cardData.card_type
+                }</strong></div>
+                <div class="card-info">RP點數：<strong>${
+                  cardData.rp_point
+                }</strong></div>
+                <div class="card-info">骰子：<strong>${
+                  cardData.dice_sides
+                }面骰</strong></div>
+                <div class="card-info">使用頻率：<strong>${
+                  cardData.usage_frequency
+                }</strong></div>
+                <div class="card-effects">${effectsHtml}</div>
+            `;
+
+        pendingActionEl.style.display = "block";
+        waitingMessageEl.style.display = "none";
+        acceptBtn.disabled = false;
+        rejectBtn.disabled = false;
+      }
+
+      function hidePendingAction() {
+        pendingActionEl.style.display = "none";
+        waitingMessageEl.style.display = "block";
+      }
+
+      function showDiceResult(data) {
+        diceNumberEl.textContent = data.dice_result;
+
+        if (data.effect) {
+          effectTextEl.textContent = data.effect.result;
+          const ipChange = data.effect.ip_change;
+          if (ipChange > 0) {
+            ipChangeEl.textContent = `+${ipChange} IP`;
+            ipChangeEl.style.color = "#4ade80";
+          } else if (ipChange < 0) {
+            ipChangeEl.textContent = `${ipChange} IP`;
+            ipChangeEl.style.color = "#f87171";
+          } else {
+            ipChangeEl.textContent = "維持現狀";
+            ipChangeEl.style.color = "#fbbf24";
+          }
+        }
+
+        diceResultEl.classList.add("show");
+      }
+
+      acceptBtn.onclick = () => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          addLog("連線未建立，無法回應", "error");
+          return;
+        }
+
+        socket.send(
+          JSON.stringify({
+            action: "respond",
+            player: "PlayerB",
+            response: "accept",
+            card_number: currentCardNumber,
+            card_name: currentCardName,
+          })
+        );
+
+        acceptBtn.disabled = true;
+        rejectBtn.disabled = true;
+      };
+
+      rejectBtn.onclick = () => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          addLog("連線未建立，無法回應", "error");
+          return;
+        }
+
+        socket.send(
+          JSON.stringify({
+            action: "respond",
+            player: "PlayerB",
+            response: "reject",
+            card_number: currentCardNumber,
+            card_name: currentCardName,
+          })
+        );
+
+        acceptBtn.disabled = true;
+        rejectBtn.disabled = true;
+      };
+
+      function addLog(message, type = "info") {
+        const logItem = document.createElement("div");
+        logItem.className = `log-item ${type}`;
+        const time = new Date().toLocaleTimeString("zh-TW");
+        logItem.textContent = `[${time}] ${message}`;
+        logEl.insertBefore(logItem, logEl.firstChild);
+
+        while (logEl.children.length > 15) {
+          logEl.removeChild(logEl.lastChild);
+        }
+      }
+
+      initWebSocket();
+    </script>
+  </body>
+</html>

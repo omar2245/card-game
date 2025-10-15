@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>卡牌遊戲測試頁面</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Microsoft JhengHei", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        display: flex;
+        gap: 30px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .player-card {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        width: 400px;
+        max-width: 100%;
+      }
+
+      .player-header {
+        text-align: center;
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #eee;
+      }
+
+      .player-header h2 {
+        color: #667eea;
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+
+      .status {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: bold;
+        margin-top: 10px;
+      }
+
+      .status.connected {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .status.disconnected {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .card-selection {
+        margin-bottom: 20px;
+      }
+
+      .card-selection label {
+        display: block;
+        margin-bottom: 10px;
+        color: #333;
+        font-weight: bold;
+      }
+
+      .card-selection select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        font-size: 16px;
+        background: white;
+        cursor: pointer;
+        transition: border-color 0.3s;
+      }
+
+      .card-selection select:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 10px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 10px;
+      }
+
+      .btn-play {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-play:hover:not(:disabled) {
+        background: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-accept {
+        background: #28a745;
+        color: white;
+      }
+
+      .btn-accept:hover:not(:disabled) {
+        background: #218838;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+      }
+
+      .btn-reject {
+        background: #dc3545;
+        color: white;
+      }
+
+      .btn-reject:hover:not(:disabled) {
+        background: #c82333;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(220, 53, 69, 0.4);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .log-container {
+        margin-top: 20px;
+        max-height: 300px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+      }
+
+      .log-title {
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 16px;
+      }
+
+      .log-item {
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        font-size: 14px;
+        animation: slideIn 0.3s ease;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .log-item.info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+
+      .log-item.success {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .log-item.warning {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      .log-item.error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .pending-action {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+      }
+
+      .pending-action h3 {
+        color: #856404;
+        margin-bottom: 10px;
+        font-size: 18px;
+      }
+
+      .pending-action p {
+        color: #856404;
+        margin-bottom: 15px;
+        font-size: 16px;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+      }
+
+      .action-buttons .btn {
+        width: auto;
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- 玩家 A (出牌方) -->
+      <div class="player-card">
+        <div class="player-header">
+          <h2>🎮 玩家 A</h2>
+          <span class="status disconnected" id="statusA">未連線</span>
+        </div>
+
+        <div class="card-selection">
+          <label for="cardSelect">選擇卡牌：</label>
+          <select id="cardSelect">
+            <option value="Freedom Strike">Freedom Strike (自由打擊)</option>
+            <option value="Power Surge">Power Surge (能量衝擊)</option>
+            <option value="Shield Break">Shield Break (破盾攻擊)</option>
+            <option value="Lightning Bolt">Lightning Bolt (閃電)</option>
+            <option value="Mystic Blast">Mystic Blast (神秘爆破)</option>
+          </select>
+        </div>
+
+        <button class="btn btn-play" id="playBtn" disabled>出牌</button>
+
+        <div class="log-container">
+          <div class="log-title">📜 遊戲記錄</div>
+          <div id="logA"></div>
+        </div>
+      </div>
+
+      <!-- 玩家 B (回應方) -->
+      <div class="player-card">
+        <div class="player-header">
+          <h2>🎯 玩家 B</h2>
+          <span class="status disconnected" id="statusB">未連線</span>
+        </div>
+
+        <div id="pendingActionB" style="display: none">
+          <div class="pending-action">
+            <h3>⚔️ 對手出牌！</h3>
+            <p id="pendingCardInfo">等待對手出牌...</p>
+            <div class="action-buttons">
+              <button class="btn btn-accept" id="acceptBtn">✓ 同意</button>
+              <button class="btn btn-reject" id="rejectBtn">✗ 拒絕</button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="waitingMessageB"
+          style="text-align: center; padding: 40px 20px; color: #666"
+        >
+          等待對手出牌...
+        </div>
+
+        <div class="log-container">
+          <div class="log-title">📜 遊戲記錄</div>
+          <div id="logB"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // WebSocket 連線設定
+      const ROOM_ID = "room001";
+      const WS_URL = `ws://localhost:8000/ws/game/${ROOM_ID}/`;
+
+      let socketA, socketB;
+
+      // 玩家 A 的邏輯
+      function initPlayerA() {
+        const statusEl = document.getElementById("statusA");
+        const playBtn = document.getElementById("playBtn");
+        const cardSelect = document.getElementById("cardSelect");
+        const logEl = document.getElementById("logA");
+
+        socketA = new WebSocket(WS_URL + "?player=PlayerA");
+
+        socketA.onopen = () => {
+          statusEl.textContent = "已連線";
+          statusEl.className = "status connected";
+          playBtn.disabled = false;
+          addLog(logEl, "已連接到遊戲房間", "success");
+        };
+
+        socketA.onclose = () => {
+          statusEl.textContent = "已斷線";
+          statusEl.className = "status disconnected";
+          playBtn.disabled = true;
+          addLog(logEl, "連線中斷", "error");
+        };
+
+        socketA.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          console.log("玩家A收到:", data);
+
+          if (data.event === "player_joined") {
+            addLog(logEl, `${data.player} 加入遊戲`, "info");
+          } else if (data.event === "card_played") {
+            if (data.player === "PlayerA") {
+              addLog(logEl, `你出了 ${data.card}，等待對手回應...`, "warning");
+            }
+          } else if (data.event === "action_resolved") {
+            const result = data.response === "accept" ? "同意" : "拒絕";
+            const resultClass =
+              data.response === "accept" ? "success" : "error";
+            addLog(
+              logEl,
+              `${data.player} ${result}了你的 ${data.card}`,
+              resultClass
+            );
+          }
+        };
+
+        socketA.onerror = (error) => {
+          console.error("WebSocket A 錯誤:", error);
+          addLog(logEl, "連線發生錯誤", "error");
+        };
+
+        // 出牌按鈕
+        playBtn.onclick = () => {
+          const selectedCard = cardSelect.value;
+          socketA.send(
+            JSON.stringify({
+              action: "play_card",
+              player: "PlayerA",
+              card: selectedCard,
+            })
+          );
+          playBtn.disabled = true;
+          setTimeout(() => {
+            playBtn.disabled = false;
+          }, 1000);
+        };
+      }
+
+      // 玩家 B 的邏輯
+      function initPlayerB() {
+        const statusEl = document.getElementById("statusB");
+        const pendingActionEl = document.getElementById("pendingActionB");
+        const waitingMessageEl = document.getElementById("waitingMessageB");
+        const pendingCardInfo = document.getElementById("pendingCardInfo");
+        const acceptBtn = document.getElementById("acceptBtn");
+        const rejectBtn = document.getElementById("rejectBtn");
+        const logEl = document.getElementById("logB");
+
+        let currentCard = null;
+
+        socketB = new WebSocket(WS_URL + "?player=PlayerB");
+
+        socketB.onopen = () => {
+          statusEl.textContent = "已連線";
+          statusEl.className = "status connected";
+          addLog(logEl, "已連接到遊戲房間", "success");
+        };
+
+        socketB.onclose = () => {
+          statusEl.textContent = "已斷線";
+          statusEl.className = "status disconnected";
+          addLog(logEl, "連線中斷", "error");
+        };
+
+        socketB.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          console.log("玩家B收到:", data);
+
+          if (data.event === "player_joined") {
+            addLog(logEl, `${data.player} 加入遊戲`, "info");
+          } else if (data.event === "card_played") {
+            currentCard = data.card;
+            pendingCardInfo.textContent = `${data.player} 出了「${data.card}」`;
+            pendingActionEl.style.display = "block";
+            waitingMessageEl.style.display = "none";
+            addLog(logEl, `${data.player} 出牌: ${data.card}`, "warning");
+          } else if (data.event === "action_resolved") {
+            pendingActionEl.style.display = "none";
+            waitingMessageEl.style.display = "block";
+            const result = data.response === "accept" ? "同意" : "拒絕";
+            const resultClass =
+              data.response === "accept" ? "success" : "error";
+            addLog(logEl, `你${result}了 ${data.card}`, resultClass);
+          }
+        };
+
+        socketB.onerror = (error) => {
+          console.error("WebSocket B 錯誤:", error);
+          addLog(logEl, "連線發生錯誤", "error");
+        };
+
+        // 同意按鈕
+        acceptBtn.onclick = () => {
+          socketB.send(
+            JSON.stringify({
+              action: "respond",
+              player: "PlayerB",
+              response: "accept",
+            })
+          );
+          acceptBtn.disabled = true;
+          rejectBtn.disabled = true;
+          setTimeout(() => {
+            acceptBtn.disabled = false;
+            rejectBtn.disabled = false;
+          }, 1000);
+        };
+
+        // 拒絕按鈕
+        rejectBtn.onclick = () => {
+          socketB.send(
+            JSON.stringify({
+              action: "respond",
+              player: "PlayerB",
+              response: "reject",
+            })
+          );
+          acceptBtn.disabled = true;
+          rejectBtn.disabled = true;
+          setTimeout(() => {
+            acceptBtn.disabled = false;
+            rejectBtn.disabled = false;
+          }, 1000);
+        };
+      }
+
+      // 新增記錄到日誌
+      function addLog(logElement, message, type = "info") {
+        const logItem = document.createElement("div");
+        logItem.className = `log-item ${type}`;
+        const time = new Date().toLocaleTimeString("zh-TW");
+        logItem.textContent = `[${time}] ${message}`;
+        logElement.insertBefore(logItem, logElement.firstChild);
+
+        // 限制記錄數量
+        while (logElement.children.length > 10) {
+          logElement.removeChild(logElement.lastChild);
+        }
+      }
+
+      // 初始化兩個玩家
+      initPlayerA();
+      initPlayerB();
+    </script>
+  </body>
+</html>

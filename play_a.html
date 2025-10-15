@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>玩家 A - 出牌</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Microsoft JhengHei", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .player-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        width: 600px;
+        max-width: 100%;
+      }
+
+      .player-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 3px solid #667eea;
+      }
+
+      .player-header h1 {
+        color: #667eea;
+        font-size: 36px;
+        margin-bottom: 10px;
+      }
+
+      .status {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 15px;
+        font-weight: bold;
+      }
+
+      .status.connected {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .status.disconnected {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .card-display {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 2px solid #667eea;
+      }
+
+      .card-display h3 {
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 20px;
+      }
+
+      .card-display .card-info {
+        margin-bottom: 8px;
+        color: #333;
+      }
+
+      .card-display .card-description {
+        background: white;
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 10px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .btn-play {
+        width: 100%;
+        padding: 18px;
+        border: none;
+        border-radius: 12px;
+        font-size: 20px;
+        font-weight: bold;
+        cursor: pointer;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        transition: all 0.3s;
+        margin-bottom: 15px;
+      }
+
+      .btn-play:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+      }
+
+      .btn-play:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .dice-result {
+        background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+        display: none;
+      }
+
+      .dice-result.show {
+        display: block;
+        animation: slideDown 0.5s ease;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .dice-result .dice-number {
+        font-size: 48px;
+        font-weight: bold;
+        margin: 10px 0;
+      }
+
+      .dice-result .effect-text {
+        font-size: 18px;
+        margin-top: 10px;
+      }
+
+      .dice-result .ip-change {
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 10px;
+      }
+
+      .log-container {
+        margin-top: 25px;
+        max-height: 300px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+      }
+
+      .log-title {
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 18px;
+      }
+
+      .log-item {
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.5;
+        animation: slideIn 0.3s ease;
+        border-left: 4px solid;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .log-item.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border-left-color: #17a2b8;
+      }
+
+      .log-item.success {
+        background: #d4edda;
+        color: #155724;
+        border-left-color: #28a745;
+      }
+
+      .log-item.warning {
+        background: #fff3cd;
+        color: #856404;
+        border-left-color: #ffc107;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="player-card">
+      <div class="player-header">
+        <h1>🎮 玩家 A</h1>
+        <span class="status disconnected" id="status">未連線</span>
+      </div>
+
+      <div class="card-display">
+        <h3>🃏 美日韓聯合軍演</h3>
+        <div class="card-info">卡號：<strong>ACT-US-02</strong></div>
+        <div class="card-info">類型：<strong>行動卡</strong></div>
+        <div class="card-info">RP點數：<strong>3</strong></div>
+        <div class="card-info">骰子：<strong>10面骰（0-9）</strong></div>
+        <div class="card-info">使用頻率：<strong>每回合</strong></div>
+
+        <div class="card-description">
+          <strong>效果說明：</strong><br />
+          • 0 = 演習整合失敗，美日韓同盟信譽受挫 <strong>-1 IP</strong><br />
+          • 1-4 = 演習成效普通，維持現狀<br />
+          • 5-7 = 演習成功，美日韓聯戰機制強化 <strong>+1 IP</strong><br />
+          • 8-9 = 演習成功，美日韓同盟有效提升 <strong>+2 IP</strong>
+        </div>
+      </div>
+
+      <button class="btn-play" id="playBtn" disabled>🚀 出牌</button>
+
+      <div class="dice-result" id="diceResult">
+        <div>🎲 骰子結果</div>
+        <div class="dice-number" id="diceNumber">-</div>
+        <div class="effect-text" id="effectText">-</div>
+        <div class="ip-change" id="ipChange">-</div>
+      </div>
+
+      <div class="log-container">
+        <div class="log-title">📜 遊戲記錄</div>
+        <div id="log"></div>
+      </div>
+    </div>
+
+    <script>
+      const ROOM_ID = "room001";
+      const WS_URL = `ws://localhost:8000/ws/game/${ROOM_ID}/?player=PlayerA`;
+
+      const CARD_DATA = {
+        card_number: "ACT-US-02",
+        name: "美日韓聯合軍演",
+      };
+
+      let socket;
+      const statusEl = document.getElementById("status");
+      const playBtn = document.getElementById("playBtn");
+      const diceResultEl = document.getElementById("diceResult");
+      const diceNumberEl = document.getElementById("diceNumber");
+      const effectTextEl = document.getElementById("effectText");
+      const ipChangeEl = document.getElementById("ipChange");
+      const logEl = document.getElementById("log");
+
+      function initWebSocket() {
+        socket = new WebSocket(WS_URL);
+
+        socket.onopen = () => {
+          statusEl.textContent = "✓ 已連線";
+          statusEl.className = "status connected";
+          playBtn.disabled = false;
+          addLog("成功連接到遊戲房間！", "success");
+        };
+
+        socket.onclose = () => {
+          statusEl.textContent = "✗ 已斷線";
+          statusEl.className = "status disconnected";
+          playBtn.disabled = true;
+          addLog("連線中斷，請重新整理頁面", "error");
+        };
+
+        socket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          console.log("收到訊息:", data);
+          handleMessage(data);
+        };
+
+        socket.onerror = (error) => {
+          console.error("WebSocket 錯誤:", error);
+          addLog("連線發生錯誤", "error");
+        };
+      }
+
+      function handleMessage(data) {
+        if (data.event === "player_joined") {
+          addLog(`${data.player} 加入了遊戲`, "info");
+        } else if (data.event === "card_played") {
+          if (data.player === "PlayerA") {
+            addLog(
+              `你出了「${data.card_name}」，等待 ${data.target} 回應...`,
+              "warning"
+            );
+          }
+        } else if (data.event === "action_resolved") {
+          if (data.original_player === "PlayerA") {
+            const result = data.response === "accept" ? "同意" : "拒絕";
+            const resultClass =
+              data.response === "accept" ? "success" : "warning";
+            const emoji = data.response === "accept" ? "✓" : "✗";
+            addLog(
+              `${emoji} ${data.player} ${result}了你的「${data.card_name}」`,
+              resultClass
+            );
+
+            // 如果同意，自動擲骰子
+            if (data.response === "accept") {
+              setTimeout(() => {
+                rollDice();
+              }, 1000);
+            }
+          }
+        } else if (data.event === "dice_rolled") {
+          showDiceResult(data);
+          addLog(`🎲 擲骰結果：${data.dice_result}`, "info");
+          if (data.effect) {
+            addLog(
+              `${data.effect.result}`,
+              data.effect.ip_change >= 0 ? "success" : "warning"
+            );
+          }
+        }
+      }
+
+      playBtn.onclick = () => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          addLog("連線未建立，無法出牌", "error");
+          return;
+        }
+
+        socket.send(
+          JSON.stringify({
+            action: "play_card",
+            player: "PlayerA",
+            card_number: CARD_DATA.card_number,
+          })
+        );
+
+        playBtn.disabled = true;
+        diceResultEl.classList.remove("show");
+        setTimeout(() => {
+          if (socket.readyState === WebSocket.OPEN) {
+            playBtn.disabled = false;
+          }
+        }, 2000);
+      };
+
+      function rollDice() {
+        socket.send(
+          JSON.stringify({
+            action: "roll_dice",
+            player: "PlayerA",
+            card_number: CARD_DATA.card_number,
+          })
+        );
+      }
+
+      function showDiceResult(data) {
+        diceNumberEl.textContent = data.dice_result;
+
+        if (data.effect) {
+          effectTextEl.textContent = data.effect.result;
+          const ipChange = data.effect.ip_change;
+          if (ipChange > 0) {
+            ipChangeEl.textContent = `+${ipChange} IP`;
+            ipChangeEl.style.color = "#4ade80";
+          } else if (ipChange < 0) {
+            ipChangeEl.textContent = `${ipChange} IP`;
+            ipChangeEl.style.color = "#f87171";
+          } else {
+            ipChangeEl.textContent = "維持現狀";
+            ipChangeEl.style.color = "#fbbf24";
+          }
+        }
+
+        diceResultEl.classList.add("show");
+      }
+
+      function addLog(message, type = "info") {
+        const logItem = document.createElement("div");
+        logItem.className = `log-item ${type}`;
+        const time = new Date().toLocaleTimeString("zh-TW");
+        logItem.textContent = `[${time}] ${message}`;
+        logEl.insertBefore(logItem, logEl.firstChild);
+
+        while (logEl.children.length > 15) {
+          logEl.removeChild(logEl.lastChild);
+        }
+      }
+
+      initWebSocket();
+    </script>
+  </body>
+</html>
